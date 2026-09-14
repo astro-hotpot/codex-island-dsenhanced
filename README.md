@@ -1,4 +1,4 @@
-# CodexIsland
+# CodexIsland · DeepSeek Fork
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
@@ -27,6 +27,17 @@ https://github.com/user-attachments/assets/195beeff-0f70-4d6b-8f3d-9f31d9c0b989
 The app is free, open source, unsigned, and local-first. It reads credentials
 already written by Claude Code / Claude Desktop and Codex, then calls only the
 providers' own usage endpoints.
+
+## About this fork
+
+This fork of [ericjypark/codex-island](https://github.com/ericjypark/codex-island) adds DeepSeek support, maintained by houtianyihou. The original MIT license and attribution are retained.
+
+- DeepSeek API balance and history readings from the embedded official usage page.
+- DSH token activity from local `session.v3.jsonl.zstd` files, counting only `assistant/message.data.usage` to avoid stream duplicates.
+- Independently configurable provider columns and display styles.
+- Builds for **Apple Silicon (M-series), macOS 13+**.
+
+DeepSeek web history depends on sign-in and page structure. Missing full history is not zero lifetime usage. DSH history is scanned from local logs and is not retained by the upstream usage database.
 
 ## What it does
 
@@ -101,8 +112,7 @@ providers' own usage endpoints.
 - **Configurable safe polling.** Choose 5m, 15m, or 30m. The app does not offer
   sub-5-minute polling because Anthropic rate-limits the usage endpoint
   aggressively.
-- **Universal binary.** `build.sh` compiles arm64 and x86_64 slices and merges
-  them with `lipo`, targeting macOS 13+.
+- **Apple Silicon build.** `build.sh` compiles arm64, targeting macOS 13+.
 - **Auto-updates via Sparkle.** The app checks the appcast attached to the
   latest GitHub Release in the background, then prompts before installing.
   Updates are signed with an EdDSA key — verifiable without involving Apple's
@@ -111,56 +121,34 @@ providers' own usage endpoints.
 - **Native app privacy.** No app telemetry, no crash reporting, no third-party
   app analytics, and no proxy service.
 
-## Install
+## Install and launch
 
-### Homebrew
-
-```sh
-brew install --cask ericjypark/tap/codexisland
-```
-
-The first invocation auto-taps `ericjypark/homebrew-tap`. The cask strips the
-Gatekeeper quarantine attribute automatically (CodexIsland is unsigned by
-Apple — Sparkle handles update verification independently).
-
-### Direct download
-
-Download the current `CodexIsland-X.Y.Z.dmg` from the
-[latest release](https://github.com/ericjypark/codex-island/releases/latest),
-drag the app to `/Applications`, then run:
+Requires an Apple Silicon Mac, macOS 13+, Xcode or Command Line Tools, and Python 3. The first build downloads Sparkle.
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/CodexIsland.app
+git clone https://github.com/houtianyihou/codex-island-dsavailable.git
+cd codex-island-dsavailable
+./start.command
 ```
 
-<details>
-<summary>Why is the dequarantine command necessary?</summary>
+Alternatively, double-click `start.command` in Finder. It builds if the app is missing, then opens `build/CodexIsland.app`. Later launches reuse that build. There is no Dock icon: look near the notch or menu bar.
 
-CodexIsland is unsigned because Apple charges $99/year for a Developer ID
-certificate, and this is a free open-source project. The command removes the
-macOS Gatekeeper quarantine attribute that triggers the "cannot be opened
-because Apple cannot check it for malicious software" warning. The source code
-is in this repository for audit.
+To update, quit the app from Settings first, then run:
 
-If a sponsored Apple Developer ID becomes available via
-[GitHub Sponsors](https://github.com/sponsors/ericjypark), signed builds can
-follow.
-</details>
+```sh
+git pull --ff-only
+./start.command --build
+```
 
-<details>
-<summary>I do not want to use Terminal. What do I do?</summary>
+`--build` rebuilds before opening; a failed build preserves the previous app. You can also use `open build/CodexIsland.app`. Quit any existing app with the same bundle ID first so you do not keep seeing an older version.
 
-1. Drag `CodexIsland.app` to `/Applications`.
-2. Try to open it. macOS will block it because the build is unsigned.
-3. Open **System Settings -> Privacy & Security**.
-4. Scroll to the bottom and find the blocked CodexIsland message.
-5. Click **Open Anyway**, then re-launch the app.
-</details>
+The original Homebrew cask and upstream downloads do not include these DeepSeek changes. Build this fork from source.
+
+Sparkle still points to upstream releases. Disable automatic checks in Settings and avoid installing upstream updates to retain fork features. Update this fork with the Git commands above.
 
 ## First run
 
-CodexIsland does not ask for passwords or API keys. It reads the auth state
-already created by the command-line tools or desktop apps you use.
+Claude / Codex use existing credentials. DeepSeek balance requires a separately configured API key file.
 
 For Codex:
 
@@ -184,6 +172,20 @@ For Claude:
 
 The first fetch starts at app launch so the panel usually has values ready by
 the first peek. Opening Settings also triggers a fresh fetch.
+
+## Configure DeepSeek
+
+1. Select **DeepSeek** for a provider column in Settings.
+2. Save one `sk-...` API key in a local text file outside this repository. Set its path (replace the example) and restart the app:
+
+```sh
+defaults write dev.codexisland.CodexIsland MacIsland.deepSeekKeyFile -string "$HOME/.config/deepseek/api-key"
+```
+
+Create the file yourself and restrict access, for example with `chmod 600`. Without an override, the current default is `~/Desktop/key/key`. Balance requests go to the official DeepSeek API. Never commit the key.
+
+3. Web history uses a separate login: choose **Open DeepSeek**, sign in to the embedded official page, and open usage. An API key does not replace this login.
+4. For DSH token activity, install `zstd` (`brew install zstd`) and retain session logs under `~/.dsh/sessions/`. This dependency is optional if you do not use DSH.
 
 ## Using the app
 
@@ -234,15 +236,14 @@ changing the app language offers to restart CodexIsland.
 Requires macOS 13+ and a Swift toolchain from Xcode / Command Line Tools.
 
 ```sh
-git clone https://github.com/ericjypark/codex-island
-cd codex-island
+git clone https://github.com/houtianyihou/codex-island-dsavailable.git
+cd codex-island-dsavailable
 ./build.sh
 open build/CodexIsland.app
 ```
 
 There is no Xcode project and no SwiftPM package. `build.sh` runs `swiftc` over
-`Sources/**/*.swift`, compiles arm64 and x86_64 slices, merges them with
-`lipo`, copies bundled resources, and writes `Info.plist`.
+`Sources/**/*.swift`, compiles arm64, copies bundled resources, and writes `Info.plist`.
 
 Smoke test the native app:
 
@@ -298,7 +299,7 @@ fields from the tag and freshly built DMG.
 ├── docs/                   # Sparkle runbook, design specs
 ├── Casks/                  # Homebrew Cask template
 ├── scripts/                # Tests, native smoke test, Sparkle setup
-├── build.sh                # Universal .app build
+├── build.sh                # Apple Silicon .app build
 ├── release.sh              # DMG packaging
 └── VERSION
 ```

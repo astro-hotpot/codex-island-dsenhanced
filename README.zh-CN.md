@@ -1,4 +1,4 @@
-# CodexIsland
+# CodexIsland · DeepSeek Fork
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
@@ -11,6 +11,17 @@
 CodexIsland 是一个原生 macOS 悬浮层，把 MacBook 刘海变成类似 Dynamic Island 的实时用量状态。它支持 Claude Code 和 Codex，用悬停预览 5 小时窗口，用点击展开完整面板，展示 5 小时与周窗口的用量、重置时间、图表样式，以及从本地会话日志估算的美元成本和 token 吞吐量。
 
 应用免费、开源、未签名，并且以本地优先为原则。它读取 Claude Code / Claude Desktop 和 Codex 已经写入本机的凭据，只调用对应服务自己的用量接口。
+
+## 关于这个 Fork
+
+本仓库基于 [ericjypark/codex-island](https://github.com/ericjypark/codex-island)，由 houtianyihou 维护 DeepSeek 扩展。保留原项目 MIT 许可证及作者署名。
+
+- DeepSeek API 余额查询，以及内嵌官方用量页面的历史数据显示。
+- 从本机 DSH 的 `session.v3.jsonl.zstd` 读取 Token，用于活动日历；只统计 `assistant/message.data.usage`，避免流式记录重复计数。
+- 提供商列和显示样式可独立配置。
+- 当前构建面向 **Apple Silicon（M 系列）和 macOS 13+**。
+
+DeepSeek 网页历史依赖登录状态和页面结构；未读到完整历史时不代表累计用量为零。DSH 数据目前来自本地日志扫描，不属于上游用量数据库的持久保存范围。
 
 ## 功能
 
@@ -28,35 +39,38 @@ CodexIsland 是一个原生 macOS 悬浮层，把 MacBook 刘海变成类似 Dyn
 - **低功耗模式。** 可以隐藏常驻辉光，只在刷新、悬停或接近限额提醒时显示。
 - **无 Dock 图标设置窗口。** 应用以 accessory app 运行，通过面板里的齿轮打开自定义设置窗口。
 - **安全轮询间隔。** 支持 5 分钟、15 分钟、30 分钟；不提供低于 5 分钟的轮询，避免触发 Anthropic 用量接口的严格限流。
-- **通用二进制。** `build.sh` 会编译 arm64 和 x86_64 两个切片，并用 `lipo` 合并，目标为 macOS 13+。
+- **Apple Silicon 构建。** `build.sh` 编译 arm64，目标为 macOS 13+。
 - **Sparkle 自动更新。** 启动时和每天一次检查最新 GitHub Release 的 appcast，安装前会提示用户确认。
 - **原生隐私边界。** 没有应用遥测、崩溃上报、第三方分析或代理服务。
 
-## 安装
+## 安装与启动
 
-### Homebrew
-
-```sh
-brew install --cask ericjypark/tap/codexisland
-```
-
-首次运行会自动 tap `ericjypark/homebrew-tap`。这个 cask 会自动移除 Gatekeeper quarantine 属性，因为 CodexIsland 没有 Apple 签名，更新校验由 Sparkle 独立处理。
-
-### 直接下载
-
-从 [Releases](https://github.com/ericjypark/codex-island/releases) 下载 `CodexIsland-X.Y.Z.dmg`，把应用拖进 `/Applications`，然后运行：
+需要 Apple Silicon Mac、macOS 13+、Xcode 或 Command Line Tools，以及 Python 3。首次构建会联网下载 Sparkle。
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/CodexIsland.app
+git clone https://github.com/houtianyihou/codex-island-dsavailable.git
+cd codex-island-dsavailable
+./start.command
 ```
 
-CodexIsland 未签名，因为 Apple Developer ID 证书需要每年付费，而这个项目是免费的开源软件。上面的命令会移除 macOS Gatekeeper quarantine 属性，避免 “Apple 无法检查是否包含恶意软件” 的拦截。源码就在这个仓库里，可以自行审计。
+也可以在 Finder 中双击 `start.command`。首次启动自动构建，之后直接打开 `build/CodexIsland.app`。应用没有 Dock 图标，请在刘海或菜单栏区域查找悬浮岛。
 
-不想用终端时，可以先把 `CodexIsland.app` 拖进 `/Applications`，尝试打开一次，随后到 **系统设置 -> 隐私与安全性** 底部找到被拦截的 CodexIsland 提示，点击 **仍要打开**，再重新启动应用。
+更新代码后，先从应用设置退出，再执行：
+
+```sh
+git pull --ff-only
+./start.command --build
+```
+
+`--build` 会重新构建；构建失败时保留已有应用。直接打开已有构建也可以使用 `open build/CodexIsland.app`。如果已有同 bundle ID 的应用运行，请先退出它，避免仍看到旧版本。
+
+原作者的 Homebrew cask 和安装包是上游版本，不包含本 Fork 的 DeepSeek 修改。本 Fork 当前以源码构建为推荐安装方式。
+
+当前 Sparkle 更新源仍指向上游。为保留 Fork 功能，请在设置中关闭自动检查，不要安装上游更新；更新本 Fork 请使用以上 Git 命令。
 
 ## 首次运行
 
-CodexIsland 不会询问密码或 API key。它只读取你已经登录过的命令行工具或桌面应用的认证状态。
+Claude / Codex 使用已有登录凭据；DeepSeek 余额查询需要单独配置 API key 文件。
 
 Codex：
 
@@ -67,10 +81,24 @@ Codex：
 Claude：
 
 - 运行一次 `claude`，或打开 Claude Desktop，让 Claude 凭据写入本机。
-- CodexIsland 会依次尝试 `CLAUDE_CODE_OAUTH_TOKEN`、macOS Keychain 里的 `Claude Code-credentials`，以及 Anthropic OAuth token endpoint 的刷新流程。
+- CodexIsland 读取环境变量 `CLAUDE_CODE_OAUTH_TOKEN`、Claude Code 的 Keychain 项以及凭据文件。应用不直接刷新 OAuth token，也不写入 Claude 凭据；过期时由 Claude Code 更新。
 - 如果都不可用，面板会显示 `auth required — run claude`。
 
 应用启动后会立即进行第一次拉取，所以你第一次悬停时通常已经能看到数据。打开设置也会触发一次刷新。
+
+## DeepSeek 配置
+
+1. 在设置中将一个提供商列切换为 **DeepSeek**。
+2. 将 API key 保存到仓库之外的本地纯文本文件，文件中应仅有一个 `sk-...` 密钥。设置自定义路径（替换示例路径），然后重启应用：
+
+```sh
+defaults write dev.codexisland.CodexIsland MacIsland.deepSeekKeyFile -string "$HOME/.config/deepseek/api-key"
+```
+
+请自行创建该文件并限制读取权限，例如 `chmod 600`。不配置时当前代码默认读取 `~/Desktop/key/key`。余额请求发往 DeepSeek 官方 API；不要把密钥提交到 Git。
+
+3. 网页历史使用独立的网页登录：点击 **打开 DeepSeek**，在内嵌官方页面登录并打开用量页。API key 不能替代网页登录。
+4. 若要显示 DSH 本地 Token 日历，安装 `zstd`（`brew install zstd`），并确保本机存在 `~/.dsh/sessions/` 下的会话日志。不使用 DSH 时无需安装。
 
 ## 使用
 
@@ -111,13 +139,13 @@ Claude：
 需要 macOS 13+ 和来自 Xcode / Command Line Tools 的 Swift 工具链。
 
 ```sh
-git clone https://github.com/ericjypark/codex-island
-cd codex-island
+git clone https://github.com/houtianyihou/codex-island-dsavailable.git
+cd codex-island-dsavailable
 ./build.sh
 open build/CodexIsland.app
 ```
 
-这个项目没有 Xcode project，也没有 SwiftPM package。`build.sh` 会直接用 `swiftc` 编译 `Sources/**/*.swift`，分别构建 arm64 和 x86_64，再合并为通用二进制，复制资源并写入 `Info.plist`。
+这个项目没有 Xcode project，也没有 SwiftPM package。`build.sh` 会直接用 `swiftc` 编译 `Sources/**/*.swift`，构建 arm64 二进制，复制资源并写入 `Info.plist`。
 
 原生 app 冒烟测试：
 
