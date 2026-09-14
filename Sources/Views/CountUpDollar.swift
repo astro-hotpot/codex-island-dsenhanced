@@ -102,10 +102,9 @@ struct CountUpDollar: View {
         return startValue + (target - startValue) * eased
     }
 
-    /// Cents under $100 (where they're meaningful); rounded above so a
-    /// 7-digit month total fits the 38pt slot.
+    /// Preserve cents at every magnitude; whole-unit currencies keep their native precision.
     private func formatted(_ v: Double) -> String {
-        let digits = wholeUnits || v >= 100 ? 0 : v >= 10 ? 1 : 2
+        let digits = wholeUnits ? 0 : 2
         return v.formatted(.number.locale(L10n.locale)
             .grouping(.automatic).precision(.fractionLength(digits)))
     }

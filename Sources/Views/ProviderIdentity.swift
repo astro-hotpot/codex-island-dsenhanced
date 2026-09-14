@@ -19,6 +19,7 @@ extension IslandProvider {
         case .codex: return IslandColor.codex
         case .grok: return IslandColor.grok
         case .antigravity: return IslandColor.antigravity
+        case .deepseek: return Color(red: 0.30, green: 0.42, blue: 1.0)
         }
     }
     var legacy: AlertEngine.Provider? {
@@ -38,19 +39,22 @@ struct ProviderMark: View {
     private static let grok = Bundle.main.url(forResource: "grok_logo", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
     private static let antigravity = Bundle.main.url(forResource: "antigravity_logo", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
 
+    private static let deepseek = Bundle.main.url(forResource: "deepseek_logo", withExtension: "ico").flatMap { NSImage(contentsOf: $0) }
+
     private var image: NSImage? {
         switch provider {
         case .claude: return Self.claude
         case .codex: return Self.codex
         case .grok: return Self.grok
         case .antigravity: return Self.antigravity
+        case .deepseek: return Self.deepseek
         }
     }
 
     var body: some View {
         Group {
             if let image {
-                Image(nsImage: image).resizable().renderingMode(.template).scaledToFit()
+                Image(nsImage: image).resizable().renderingMode(provider == .deepseek ? .original : .template).scaledToFit()
             } else {
                 Image(systemName: provider == .grok ? "asterisk" : "a.circle")
                     .resizable().scaledToFit()

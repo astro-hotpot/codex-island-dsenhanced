@@ -18,7 +18,7 @@ final class ProviderVisibilityStore: ObservableObject {
             }
             self.selected = Self.normalized(legacy)
         }
-        persist()
+        // Reading preferences must not erase providers introduced by a newer version.
     }
 
     var left: IslandProvider { selected.first ?? .claude }

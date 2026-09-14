@@ -46,6 +46,11 @@ struct CostTile: View {
     /// column doubles in width.
     let centered: Bool
 
+    @ObservedObject private var visibility = ProviderVisibilityStore.shared
+    private var selectedStyle: CostStyle {
+        stylePref.style(isRight: visibility.right?.costProvider == provider)
+    }
+
     @ObservedObject private var stylePref = CostStylePref.shared
     @ObservedObject private var usageStore = UsageStore.shared
     @ObservedObject private var connections = ProviderConnectionStore.shared
@@ -74,12 +79,12 @@ struct CostTile: View {
             Spacer(minLength: 0)
 
             Group {
-                if stylePref.style == .multi {
+                if selectedStyle == .multi {
                     multiplierHero
-                } else if window.error != nil || (stylePref.style != .tokens && costUnavailable) {
+                } else if window.error != nil || (selectedStyle != .tokens && costUnavailable) {
                     Text("—").font(Typography.chartValue).foregroundStyle(.white.opacity(0.4))
                 } else {
-                switch stylePref.style {
+                switch selectedStyle {
                 case .dollar: dollarHero
                 case .multi:  multiplierHero
                 case .tokens: tokensHero
@@ -87,7 +92,7 @@ struct CostTile: View {
                 }
                 }
             }
-            .id(stylePref.style)
+            .id(selectedStyle)
             .transition(.chartSwap.animation(.chartSwap))
             .offset(y: heroYOffset)
             .frame(maxWidth: centered ? 240 : .infinity, alignment: centered ? .center : .leading)
@@ -106,16 +111,16 @@ struct CostTile: View {
     }
 
     private var spokenValue: String {
-        if stylePref.style == .multi {
+        if selectedStyle == .multi {
             let plan = subscriptionUSD == nil ? "unavailable" : formatBarDollars(planAmount)
             let you = costUnavailable ? "unavailable" : formatBarDollars(window.dollars)
             return L10n.tr("%@ %@ versus you %@", planLabel ?? L10n.tr("Plan"), plan, you)
         }
         if let error = window.error { return error }
-        if stylePref.style != .tokens && window.dollars == 0 && !window.unknownModels.isEmpty {
+        if selectedStyle != .tokens && window.dollars == 0 && !window.unknownModels.isEmpty {
             return "Cost unavailable: model pricing is missing"
         }
-        switch stylePref.style {
+        switch selectedStyle {
         case .dollar:
             return currencyStore.formatted(usd: window.dollars)
         case .multi:
@@ -132,25 +137,17 @@ struct CostTile: View {
     // MARK: - Heroes
 
     private var heroYOffset: CGFloat {
-        switch stylePref.style {
+        switch selectedStyle {
         case .dollar, .tokens: return -10
         case .multi, .spark:   return 0
         }
     }
 
     private var dollarHero: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 1) {
-            Text(currencyStore.displaySymbol)
-                .font(Typography.unit)
-                .foregroundStyle(.white.opacity(0.4))
-            CountUpDollar(
-                target: currencyStore.converted(usd: window.dollars),
-                wholeUnits: currencyStore.displayUsesWholeUnits,
-                color: color,
-                glowOpacity: glowOpacity
-            )
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        CostMoneyHero(amount: currencyStore.converted(usd: window.dollars),
+                      symbol: currencyStore.displaySymbol,
+                      wholeUnits: currencyStore.displayUsesWholeUnits,
+                      color: color, glowOpacity: glowOpacity)
     }
 
     /// Side-by-side bar chart: left bar is the plan price (white, subtle),
@@ -298,6 +295,7 @@ struct CostTile: View {
             case .claude: return usageStore.claude.plan?.lowercased()
             case .codex:  return usageStore.codex.plan?.lowercased()
             case .antigravity: return connections.snapshot(.antigravity).plan?.lowercased()
+            case .deepseek: return nil
             case .grok: return connections.snapshot(.grok).plan?.lowercased()
             }
         }()
@@ -326,6 +324,7 @@ struct CostTile: View {
             case .claude: return usageStore.claude.plan?.lowercased()
             case .codex:  return usageStore.codex.plan?.lowercased()
             case .antigravity: return connections.snapshot(.antigravity).plan?.lowercased()
+            case .deepseek: return nil
             case .grok: return connections.snapshot(.grok).plan?.lowercased()
             }
         }()

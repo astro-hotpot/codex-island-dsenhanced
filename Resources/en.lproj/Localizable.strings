@@ -226,3 +226,56 @@
 "%@ account options" = "%@ account options";
 "Sign in with Claude" = "Sign in with Claude";
 "Open Claude Code and run /login." = "Open Claude Code and run /login.";
+
+"Left side" = "Left side";
+"Right side" = "Right side";
+
+"Balance" = "Balance";
+
+"Balance connection not configured" = "Balance connection not configured";
+
+"Available balance" = "Available balance";
+
+"Insufficient balance" = "Insufficient balance";
+
+"Refresh balance" = "Refresh balance";
+
+"Balance unavailable; check key file and connection" = "Balance unavailable; check key file and connection";
+
+"Select DeepSeek to display balance" = "Select DeepSeek to display balance";
+
+"DeepSeek local cost history is unavailable" = "DeepSeek local cost history is unavailable";
+
+"Usage history" = "Usage history";
+
+"Requests" = "Requests";
+
+"Open DeepSeek" = "Open DeepSeek";
+
+"Sign in to DeepSeek to sync token history" = "Sign in to DeepSeek to sync token history";
+
+"Open DeepSeek to sign in or check the usage page" = "Open DeepSeek to sign in or check the usage page";
+
+"Configure DeepSeek in Settings" = "Configure DeepSeek in Settings";
+
+"History scope follows the DeepSeek usage page" = "History scope follows the DeepSeek usage page";
+
+"This month" = "This month";
+
+"Total consumption" = "Total consumption";
+
+"All time" = "All time";
+
+"Lifetime tokens unavailable" = "Lifetime tokens unavailable";
+
+"Display time range" = "Display time range";
+
+"Selected range applies to tokens and cost; totals cover all history" = "Selected range applies to tokens and cost; totals cover all history";
+
+"First column" = "First column";
+
+"Second column" = "Second column";
+
+"Display metric" = "Display metric";
+
+"Lifetime tokens unavailable unless full history is returned" = "Lifetime tokens unavailable unless full history is returned";

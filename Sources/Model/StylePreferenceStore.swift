@@ -17,6 +17,12 @@ where S.RawValue == String {
     @Published var style: S {
         didSet { UserDefaults.standard.set(style.rawValue, forKey: styleKey) }
     }
+    @Published var rightStyle: S {
+        didSet { UserDefaults.standard.set(rightStyle.rawValue, forKey: styleKey + ".right") }
+    }
+
+    func style(isRight: Bool) -> S { isRight ? rightStyle : style }
+
     @Published var hasCycledStyle: Bool {
         didSet { UserDefaults.standard.set(hasCycledStyle, forKey: cycledKey) }
     }
@@ -25,15 +31,20 @@ where S.RawValue == String {
         self.styleKey = styleKey
         self.cycledKey = cycledKey
         let raw = UserDefaults.standard.string(forKey: styleKey) ?? ""
-        self.style = S(rawValue: raw) ?? defaultStyle
+        let initialStyle = S(rawValue: raw) ?? defaultStyle
+        self.style = initialStyle
+        self.rightStyle = S(rawValue: UserDefaults.standard.string(forKey: styleKey + ".right") ?? "")
+            ?? initialStyle
         // Demo mode keeps the ⌘-click hint visible regardless of prior session.
         self.hasCycledStyle = AppEnvironment.isDemo ? false : UserDefaults.standard.bool(forKey: cycledKey)
+        UserDefaults.standard.set(self.rightStyle.rawValue, forKey: styleKey + ".right")
     }
 
-    func cycle() {
+    func cycle(isRight: Bool = false) {
         let all = Array(S.allCases)
-        if let i = all.firstIndex(of: style) {
-            style = all[(i + 1) % all.count]
+        if let i = all.firstIndex(of: style(isRight: isRight)) {
+            if isRight { rightStyle = all[(i + 1) % all.count] }
+            else { style = all[(i + 1) % all.count] }
         }
         if !hasCycledStyle { hasCycledStyle = true }
     }

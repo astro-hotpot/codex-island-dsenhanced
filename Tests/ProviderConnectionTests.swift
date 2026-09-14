@@ -28,6 +28,11 @@ struct ProviderConnectionTests {
         let suite = "CodexIsland.ProviderTests.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: suite) else { fatalError("Cannot create test defaults") }
         defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(["codex", "future-provider"], forKey: ProviderVisibilityStore.selectionKey)
+        _ = ProviderVisibilityStore(defaults: defaults)
+        expect(defaults.stringArray(forKey: ProviderVisibilityStore.selectionKey) == ["codex", "future-provider"],
+               "startup does not erase unknown provider preferences")
+        defaults.removeObject(forKey: ProviderVisibilityStore.selectionKey)
         var store = ProviderVisibilityStore(defaults: defaults)
         expect(store.selected == [.claude, .codex], "new install preserves the existing two providers")
         store.set(nil, at: 0)

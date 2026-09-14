@@ -31,7 +31,8 @@ final class ProviderConnectionStore: ObservableObject {
     }
 
     func snapshot(_ provider: IslandProvider) -> ConnectedUsage {
-        snapshots[provider] ?? ConnectedUsage(message: provider == .grok
+        if provider == .deepseek { return ConnectedUsage(plan: "API") }
+        return snapshots[provider] ?? ConnectedUsage(message: provider == .grok
             ? "Sign in with Grok CLI to connect your subscription."
             : "Sign in with agy CLI to connect your subscription.", needsLogin: true)
     }
@@ -55,6 +56,12 @@ final class ProviderConnectionStore: ObservableObject {
     }
 
     func refresh(_ provider: IslandProvider, manually: Bool = false) {
+        if provider == .deepseek {
+            Task { await DeepSeekBalanceStore.shared.refresh() }
+            DeepSeekHistoryStore.shared.refresh()
+            DeepSeekHistoryStore.second.refresh()
+            return
+        }
         guard !provider.usesLegacyUsage, !loading.contains(provider) else { return }
         if let until = cooldown[provider], until > Date() { return }
         if !manually, let previous = lastAttempt[provider], Date().timeIntervalSince(previous) < 300 { return }

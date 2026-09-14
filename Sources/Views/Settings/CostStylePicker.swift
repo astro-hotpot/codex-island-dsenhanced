@@ -6,11 +6,12 @@ import SwiftUI
 /// also updates the `CostStylePref.shared` singleton via the binding.
 struct CostStylePicker: View {
     @Binding var selected: CostStyle
+    var provider: IslandProvider? = nil
     @ObservedObject private var currencyStore = CurrencyStore.shared
 
     var body: some View {
         HStack(spacing: 6) {
-            ForEach(CostStyle.allCases, id: \.self) { style in
+            ForEach(provider == .deepseek ? [.dollar, .tokens] : CostStyle.allCases, id: \.self) { style in
                 StyleTile(
                     displayLabel: style == .dollar
                         ? currencyStore.displayCurrency.rawValue

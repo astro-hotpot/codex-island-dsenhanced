@@ -226,3 +226,56 @@
 "%@ account options" = "%@ 账户选项";
 "Sign in with Claude" = "登录 Claude";
 "Open Claude Code and run /login." = "打开 Claude Code 并运行 /login。";
+
+"Left side" = "左侧";
+"Right side" = "右侧";
+
+"Balance" = "余额";
+
+"Balance connection not configured" = "余额查询尚未配置";
+
+"Available balance" = "可用余额";
+
+"Insufficient balance" = "余额不足";
+
+"Refresh balance" = "刷新余额";
+
+"Balance unavailable; check key file and connection" = "余额查询失败，请检查密钥文件与网络";
+
+"Select DeepSeek to display balance" = "选择 DeepSeek 供应商以显示余额";
+
+"DeepSeek local cost history is unavailable" = "尚未接入 DeepSeek 本地消费记录";
+
+"Usage history" = "用量记录";
+
+"Requests" = "次请求";
+
+"Open DeepSeek" = "打开 DeepSeek";
+
+"Sign in to DeepSeek to sync token history" = "登录 DeepSeek 以同步 Token 消耗记录";
+
+"Open DeepSeek to sign in or check the usage page" = "请打开 DeepSeek 登录或检查用量页面";
+
+"Configure DeepSeek in Settings" = "请在设置中连接 DeepSeek";
+
+"History scope follows the DeepSeek usage page" = "查询范围在 DeepSeek 用量页面中设置";
+
+"This month" = "本月消耗";
+
+"Total consumption" = "累计消耗";
+
+"All time" = "全部历史";
+
+"Lifetime tokens unavailable" = "暂无累计 Token 数据";
+
+"Display time range" = "显示时间";
+
+"Selected range applies to tokens and cost; totals cover all history" = "所选范围用于 Token 和金额，累计消耗仍为全部历史";
+
+"First column" = "DeepSeek 第一列";
+
+"Second column" = "DeepSeek 第二列";
+
+"Display metric" = "显示数据";
+
+"Lifetime tokens unavailable unless full history is returned" = "累计 Token 仅在完整历史查询成功后显示";

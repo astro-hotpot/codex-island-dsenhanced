@@ -6,12 +6,14 @@ struct ConnectedUsageBlock: View {
     @ObservedObject private var preferences = ProviderQuotaPreferences.shared
     @ObservedObject private var style = StylePref.shared
 
+    @ObservedObject private var visibility = ProviderVisibilityStore.shared
+
     var body: some View {
         let snapshot = connections.snapshot(provider)
         let limits = connections.limits(provider)
         Group {
             if !snapshot.needsLogin && limits.contains(where: { $0.usedFraction != nil }) {
-                UsageChartsRow(color: provider.color, style: style.style, seed: provider == .grok ? 5 : 7,
+                UsageChartsRow(color: provider.color, style: style.style(isRight: provider == visibility.right), seed: provider == .grok ? 5 : 7,
                     metrics: limits.map { limit in
                         UsageChartMetric(id: limit.id, label: limit.label, window: limit.window,
                                          historyKey: snapshot.historyKey(provider: provider, limit: limit))

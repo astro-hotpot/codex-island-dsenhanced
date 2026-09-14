@@ -616,9 +616,16 @@ struct SettingsView: View {
     private var chartSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             sectionLabel("Chart style", hint: "⌘-click to cycle")
-            ChartStylePicker(selected: $stylePref.style)
-                .padding(.top, 4)
-                .padding(.horizontal, 10)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.tr("Left side") + " · " + visibility.left.name)
+                    .font(Typography.label)
+                ChartStylePicker(selected: $stylePref.style, provider: visibility.left)
+                Text(L10n.tr("Right side") + (visibility.right.map { " · " + $0.name } ?? ""))
+                    .font(Typography.label)
+                ChartStylePicker(selected: $stylePref.rightStyle, provider: visibility.right)
+            }
+            .padding(.top, 4)
+            .padding(.horizontal, 10)
         }
         .padding(.horizontal, 14)
         .padding(.top, 18)
@@ -643,9 +650,16 @@ struct SettingsView: View {
     private var costStyleSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             sectionLabel("Cost view", hint: "⌘-click to cycle")
-            CostStylePicker(selected: $costStylePref.style)
-                .padding(.top, 4)
-                .padding(.horizontal, 10)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.tr("Left side") + " · " + visibility.left.name)
+                    .font(Typography.label)
+                CostStylePicker(selected: $costStylePref.style, provider: visibility.left)
+                Text(L10n.tr("Right side") + (visibility.right.map { " · " + $0.name } ?? ""))
+                    .font(Typography.label)
+                CostStylePicker(selected: $costStylePref.rightStyle, provider: visibility.right)
+            }
+            .padding(.top, 4)
+            .padding(.horizontal, 10)
         }
         .padding(.horizontal, 14)
         .padding(.top, 14)

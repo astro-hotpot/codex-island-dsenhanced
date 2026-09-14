@@ -85,6 +85,14 @@ final class CurrencyStore: ObservableObject {
         }
     }
 
+    func converted(amount: Double, from source: String) -> Double? {
+        if source == displayCurrency.rawValue { return amount }
+        guard let sourceRate = source == "USD" ? 1 : cache?.rates[source],
+              sourceRate > 0 else { return nil }
+        let destinationRate = displayCurrency == .usd ? 1 : usdRate
+        return amount / sourceRate * destinationRate
+    }
+
     func converted(usd: Double) -> Double {
         usd * usdRate
     }

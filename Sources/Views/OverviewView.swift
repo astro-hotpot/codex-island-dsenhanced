@@ -6,11 +6,23 @@ struct OverviewView: View {
     var body: some View {
         OverviewContent(
             allDays: OverviewContent.joinDays(buckets: Dictionary(uniqueKeysWithValues:
-                IslandProvider.allCases.map { ($0, costStore.cost(for: $0).dailyTokens) }
+                OverviewProvider.allCases.map { ($0, $0 == .dsh ? costStore.dshDailyTokens : costStore.cost(for: IslandProvider(rawValue: $0.rawValue)!).dailyTokens) }
             )),
             loading: costStore.loading
         )
+        .overlay(alignment: .bottomLeading) {
+            if costStore.dshReadError {
+                Text("DSH 用量读取失败，请检查会话文件及 zstd 是否可用")
+                    .font(.caption2).foregroundStyle(.orange).padding(.horizontal, 16)
+            }
+        }
     }
+}
+
+private enum OverviewProvider: String, CaseIterable {
+    case claude, codex, grok, antigravity, deepseek, dsh
+    var name: String { self == .dsh ? "DSH" : IslandProvider(rawValue: rawValue)!.name }
+    var color: Color { self == .dsh ? .cyan : IslandProvider(rawValue: rawValue)!.color }
 }
 
 /// Minimal contribution-style view. Powered by the same local log scan as
@@ -20,7 +32,7 @@ private struct OverviewContent: View {
     let allDays: [OverviewDay]
     let loading: Bool
     @State private var selectedDate: Date?
-    @State private var selectedProvider: IslandProvider?
+    @State private var selectedProvider: OverviewProvider?
 
     private var days: [OverviewDay] {
         guard let selectedProvider else { return allDays }
@@ -39,7 +51,7 @@ private struct OverviewContent: View {
         let selected = selectedDate.flatMap { date in
             history.first { Calendar.current.isDate($0.date, inSameDayAs: date) }
         }
-        return IslandProvider.allCases.compactMap { provider in
+        return OverviewProvider.allCases.compactMap { provider in
             let tokens = history.reduce(0) { $0 + ($1.tokens[provider] ?? 0) }
             guard tokens > 0 else { return nil }
             return ProviderTokenUsage(provider: provider,
@@ -153,14 +165,14 @@ private struct OverviewContent: View {
         }.joined(separator: ", ")
     }
 
-    static func joinDays(buckets: [IslandProvider: [DailyTokenBucket]]) -> [OverviewDay] {
+    static func joinDays(buckets: [OverviewProvider: [DailyTokenBucket]]) -> [OverviewDay] {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = .current
         let today = cal.startOfDay(for: Date())
         let start = cal.date(from: cal.dateComponents([.year], from: today)) ?? today
         let nextYear = cal.date(byAdding: .year, value: 1, to: start) ?? today
         let dayCount = cal.dateComponents([.day], from: start, to: nextYear).day ?? 365
-        var totals: [Date: [IslandProvider: Int]] = [:]
+        var totals: [Date: [OverviewProvider: Int]] = [:]
         for (provider, history) in buckets {
             for bucket in history {
                 let day = cal.startOfDay(for: bucket.dayStart)
@@ -213,28 +225,28 @@ private struct OverviewContent: View {
 }
 
 private struct ProviderTokenUsage: Identifiable {
-    let provider: IslandProvider
+    let provider: OverviewProvider
     let tokens: Int
-    var id: IslandProvider { provider }
+    var id: OverviewProvider { provider }
 }
 
 private struct OverviewDay: Identifiable {
     let date: Date
-    let tokens: [IslandProvider: Int]
+    let tokens: [OverviewProvider: Int]
     var isFuture = false
 
     var id: Date { date }
     var totalTokens: Int { tokens.values.reduce(0, +) }
     var usage: [ProviderTokenUsage] {
-        IslandProvider.allCases.compactMap { provider in
+        OverviewProvider.allCases.compactMap { provider in
             let count = tokens[provider] ?? 0
             return count > 0 ? ProviderTokenUsage(provider: provider, tokens: count) : nil
         }
     }
-    var leadingProvider: IslandProvider? {
+    var leadingProvider: OverviewProvider? {
         usage.max { $0.tokens < $1.tokens }?.provider
     }
-    var dominantProvider: IslandProvider? {
+    var dominantProvider: OverviewProvider? {
         guard totalTokens > 0 else { return nil }
         return usage.first { Double($0.tokens) / Double(totalTokens) >= 0.60 }?.provider
     }
@@ -684,7 +696,7 @@ private struct DayDetailStrip: View {
 
 private struct ProviderSplitRow: View {
     let usage: [ProviderTokenUsage]
-    @Binding var selectedProvider: IslandProvider?
+    @Binding var selectedProvider: OverviewProvider?
     private var total: Int { usage.reduce(0) { $0 + $1.tokens } }
 
     var body: some View {

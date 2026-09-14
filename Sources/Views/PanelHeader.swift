@@ -13,18 +13,24 @@ struct PanelHeader: View {
     @ObservedObject private var usageStore = UsageStore.shared
     @ObservedObject private var connections = ProviderConnectionStore.shared
 
+
     var body: some View {
         HStack(spacing: 0) {
-            title(visibility.left, isLeft: true)
+            header(visibility.left, isLeft: true)
             Color.clear.frame(width: notch.width)
             if let right = visibility.right {
-                title(right, isLeft: false)
+                header(right, isLeft: false)
             } else {
                 Color.clear.frame(maxWidth: .infinity)
             }
         }
         .frame(height: IslandPanelLayout.headerHeight(notch: notch))
         .padding(.horizontal, IslandPanelLayout.horizontalInset)
+    }
+
+    @ViewBuilder
+    private func header(_ provider: IslandProvider, isLeft: Bool) -> some View {
+        title(provider, isLeft: isLeft)
     }
 
     private func title(_ provider: IslandProvider, isLeft: Bool) -> some View {

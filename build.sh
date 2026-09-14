@@ -11,7 +11,10 @@ if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   exit 1
 fi
 BUILD_DIR="./build"
-APP_DIR="$BUILD_DIR/$APP_NAME.app"
+mkdir -p "$BUILD_DIR"
+WORK_DIR=$(mktemp -d "$BUILD_DIR/.staging.XXXXXX")
+trap 'rm -rf "$WORK_DIR"' EXIT
+APP_DIR="$WORK_DIR/$APP_NAME.app"
 CONTENTS="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS/MacOS"
 RES_DIR="$CONTENTS/Resources"
@@ -34,12 +37,12 @@ SU_PUBLIC_KEY="bz1gwLBKgIL/Y7OO23o3gaMNIeTpvv/C90F9inr9Quo="
 
 SU_FEED_URL="${SU_FEED_URL:-https://github.com/ericjypark/codex-island/releases/latest/download/appcast.xml}"
 
-rm -rf "$BUILD_DIR"
 mkdir -p "$MACOS_DIR" "$RES_DIR" "$FRAMEWORKS_DIR"
 
 cp ./Resources/claude_logo.pdf "$RES_DIR/claude_logo.pdf"
 cp ./Resources/openai_logo.pdf "$RES_DIR/openai_logo.pdf"
 cp ./Resources/grok_logo.png "$RES_DIR/grok_logo.png"
+cp ./Resources/deepseek_logo.ico "$RES_DIR/deepseek_logo.ico"
 cp ./Resources/ThirdPartyNotices.txt "$RES_DIR/ThirdPartyNotices.txt"
 cp ./Resources/antigravity_logo.png "$RES_DIR/antigravity_logo.png"
 cp ./Resources/codexisland_logo.png "$RES_DIR/codexisland_logo.png"
@@ -51,13 +54,11 @@ cp -a "$SPARKLE_FW" "$FRAMEWORKS_DIR/Sparkle.framework"
 
 SWIFT_SOURCES=$(find Sources -name '*.swift' | sort)
 
-# Universal binary, macOS 13 (Ventura) minimum. swiftc can't emit a
-# multi-arch Mach-O directly, so compile each slice and lipo them.
+# Apple Silicon binary, macOS 13 (Ventura) minimum.
 DEPLOYMENT_TARGET="13.0"
-ARM64_BIN="$BUILD_DIR/$APP_NAME-arm64"
-X86_64_BIN="$BUILD_DIR/$APP_NAME-x86_64"
+ARM64_BIN="$WORK_DIR/$APP_NAME-arm64"
 
-for arch_pair in "arm64:$ARM64_BIN" "x86_64:$X86_64_BIN"; do
+for arch_pair in "arm64:$ARM64_BIN"; do
   arch="${arch_pair%%:*}"
   out="${arch_pair##*:}"
   swiftc \
@@ -74,8 +75,7 @@ for arch_pair in "arm64:$ARM64_BIN" "x86_64:$X86_64_BIN"; do
     $SWIFT_SOURCES
 done
 
-lipo -create "$ARM64_BIN" "$X86_64_BIN" -output "$MACOS_DIR/$APP_NAME"
-rm "$ARM64_BIN" "$X86_64_BIN"
+mv "$ARM64_BIN" "$MACOS_DIR/$APP_NAME"
 
 cat > "$CONTENTS/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -120,4 +120,23 @@ for xpc in Installer.xpc Downloader.xpc; do
 done
 codesign --force --sign - --timestamp=none "$FRAMEWORKS_DIR/Sparkle.framework"
 
-echo "✓ built $APP_DIR ($VERSION)"
+swift scripts/verify-icons.swift "$APP_DIR"
+codesign --force --sign - --timestamp=none "$APP_DIR"
+python3 - "$APP_DIR" "$BUILD_DIR/$APP_NAME.app" <<'PYTHON'
+import ctypes
+import os
+import sys
+
+source, destination = map(os.path.abspath, sys.argv[1:])
+if os.path.exists(destination):
+    libc = ctypes.CDLL("/usr/lib/libSystem.B.dylib", use_errno=True)
+    rename = libc.renamex_np
+    rename.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
+    rename.restype = ctypes.c_int
+    if rename(os.fsencode(source), os.fsencode(destination), 2) != 0:
+        code = ctypes.get_errno()
+        raise OSError(code, os.strerror(code))
+else:
+    os.rename(source, destination)
+PYTHON
+echo "✓ built $BUILD_DIR/$APP_NAME.app ($VERSION)"

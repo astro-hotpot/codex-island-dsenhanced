@@ -101,15 +101,28 @@ struct IslandRootView: View {
                     }
                 }
                 .contentShape(IslandShape())
-                .onTapGesture {
+                .onTapGesture { location in
                     // Cmd-click cycles the visualization style of whichever
                     // page is active. Usage rotates Ring/Bar/Stepped/Numeric/
                     // Spark; cost rotates USD/VALUE/TOKENS/TREND. Overview
                     // is fixed to year-to-date.
                     if NSEvent.modifierFlags.contains(.command) {
+                        let isRight = visibility.right != nil && location.x > model.size.width / 2
                         switch ScreenPref.shared.screen {
-                        case .usage: StylePref.shared.cycle()
-                        case .cost:  CostStylePref.shared.cycle()
+                        case .usage:
+                            let provider = isRight ? visibility.right : visibility.left
+                            guard provider != .deepseek else { return }
+                            StylePref.shared.cycle(isRight: isRight)
+                            if StylePref.shared.style(isRight: isRight) == .balance {
+                                StylePref.shared.cycle(isRight: isRight)
+                            }
+                        case .cost:
+                            let provider = isRight ? visibility.right : visibility.left
+                            if provider == .deepseek {
+                                let next: CostStyle = CostStylePref.shared.style(isRight: isRight) == .tokens ? .dollar : .tokens
+                                if isRight { CostStylePref.shared.rightStyle = next }
+                                else { CostStylePref.shared.style = next }
+                            } else { CostStylePref.shared.cycle(isRight: isRight) }
                         case .overview: return
                         }
                         return
@@ -430,12 +443,18 @@ private struct PeekPillOverlay: View {
 
     @ObservedObject private var visibility = ProviderVisibilityStore.shared
     @ObservedObject private var connections = ProviderConnectionStore.shared
+    @ObservedObject private var balance = DeepSeekBalanceStore.shared
     @ObservedObject private var quotaPreferences = ProviderQuotaPreferences.shared
     @ObservedObject private var usageStore = UsageStore.shared
     @ObservedObject private var alerts = AlertEngine.shared
 
     var body: some View {
         let window = currentWindow
+        Group {
+        if provider == .deepseek {
+            Text(balance.headline + (balance.error == nil ? "" : " !"))
+                .font(Typography.bodyNumber).foregroundStyle(tint)
+        } else {
         NotchPeekPill(
             usage: window,
             loading: provider.usesLegacyUsage ? usageStore.loading : connections.loading.contains(provider),
@@ -444,6 +463,8 @@ private struct PeekPillOverlay: View {
             severity: severity,
             windowLengthFallback: provider.usesLegacyUsage ? (currentWindowIsWeekly ? "7d" : "5h") : ""
         )
+        }
+        }
         .padding(isLeft ? .leading : .trailing, 14)
         .padding(.top, topPadding)
         // Two opacity bindings stack:
@@ -456,7 +477,7 @@ private struct PeekPillOverlay: View {
         .animation(.openMorph, value: isVisible)
         .offset(x: pillsVisible ? 0 : (isLeft ? -6 : 6))
         .allowsHitTesting(false)
-        .accessibilityLabel(peekLabel(for: window, provider: providerLabel, weekly: currentWindowIsWeekly))
+        .accessibilityLabel(provider == .deepseek ? "DeepSeek " + balance.headline : peekLabel(for: window, provider: providerLabel, weekly: currentWindowIsWeekly))
         // Mirror the visual opacity gate exactly — both `pillsVisible` and
         // `isVisible` must be true for the pill to render. Keying the
         // accessibility hide on only `isVisible` lets VoiceOver reach a
@@ -472,7 +493,7 @@ private struct PeekPillOverlay: View {
         switch provider {
         case .claude: return usageStore.claude.fiveHour
         case .codex:  return usageStore.codex.peekWindow
-        case .grok, .antigravity:
+        case .grok, .antigravity, .deepseek:
             return connections.primary(provider)?.window ?? .unknown
         }
     }

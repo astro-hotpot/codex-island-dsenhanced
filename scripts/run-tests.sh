@@ -188,3 +188,10 @@ swiftc \
   Tests/ProviderSessionRecoveryTests.swift
 
 "$OUT_DIR/provider-session-recovery-tests"
+
+# DSH compressed-session usage parser: no personal logs required.
+swiftc -o "$OUT_DIR/dsh-reader-tests" \
+  Sources/Model/AppLanguageStore.swift Sources/Localization/L10n.swift \
+  Sources/Cost/CostUsage.swift Sources/Cost/CostBucketing.swift \
+  Sources/Cost/DSHLogReader.swift Tests/DSHLogReaderTests.swift
+"$OUT_DIR/dsh-reader-tests"

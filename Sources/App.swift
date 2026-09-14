@@ -19,6 +19,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsShortcutMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let bundleID = Bundle.main.bundleIdentifier,
+           let existing = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+            .first(where: { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier && !$0.isTerminated }) {
+            existing.activate(options: [.activateIgnoringOtherApps])
+            NSApp.terminate(nil)
+            return
+        }
         // Before any window or store exists: the first cost scan must price
         // against the cached catalog, not fall back to the seed and then
         // silently change its numbers a moment later.

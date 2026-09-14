@@ -30,7 +30,9 @@ struct CostView: View {
     private func providerBlock(_ provider: IslandProvider) -> some View {
         let cost = store.cost(for: provider)
         let snapshot = connections.snapshot(provider)
-        if !provider.usesLegacyUsage && snapshot.hasNoActiveSubscription
+        if provider == .deepseek {
+            DeepSeekHistoryBlock()
+        } else if !provider.usesLegacyUsage && snapshot.hasNoActiveSubscription
             && cost.today.error != nil && cost.month.error != nil
             && cost.today.tokens == 0 && cost.month.tokens == 0
             && cost.today.dollars == 0 && cost.month.dollars == 0 {

@@ -9,8 +9,6 @@ struct UsageView: View {
     @ObservedObject private var pref = StylePref.shared
     @ObservedObject private var visibility = ProviderVisibilityStore.shared
 
-    private var style: ChartStyle { pref.style }
-
     var body: some View {
         HStack(spacing: 0) {
             providerBlock(visibility.left)
@@ -32,9 +30,11 @@ struct UsageView: View {
 
     @ViewBuilder
     private func providerBlock(_ provider: IslandProvider) -> some View {
-        if let legacy = provider.legacy {
+        if provider == .deepseek {
+            DeepSeekBalanceBlock()
+        } else if let legacy = provider.legacy {
             ChartsBlock(color: provider.color, usage: provider == .claude ? store.claude : store.codex,
-                        style: style, seed: provider == .claude ? 1 : 3, provider: legacy)
+                        style: pref.style(isRight: provider == visibility.right) == .balance ? .numeric : pref.style(isRight: provider == visibility.right), seed: provider == .claude ? 1 : 3, provider: legacy)
         } else {
             ConnectedUsageBlock(provider: provider)
         }
@@ -237,6 +237,7 @@ struct ChartTile: View {
         Group {
             if let value {
                 switch style {
+                case .balance: Text(L10n.tr("Select DeepSeek to display balance"))
                 case .ring:    RingChart(value: value, color: color, label: label, sub: sub, centered: centered)
                 case .bar:     BarChart(value: value, color: color, label: label, sub: sub)
                 case .stepped: SteppedChart(value: value, color: color, label: label, sub: sub)

@@ -7,13 +7,14 @@ import SwiftUI
 /// picker reads as a real preview, not an icon set.
 struct ChartStylePicker: View {
     @Binding var selected: ChartStyle
+    var provider: IslandProvider? = nil
 
     var body: some View {
         HStack(spacing: 6) {
-            ForEach(ChartStyle.allCases, id: \.self) { style in
+            ForEach(provider == .deepseek ? [.balance] : ChartStyle.allCases.filter { $0 != .balance }, id: \.self) { style in
                 StyleTile(
                     displayLabel: style.label,
-                    isOn: style == selected,
+                    isOn: provider == .deepseek || style == selected,
                     action: {
                         selected = style
                         if !StylePref.shared.hasCycledStyle {
@@ -31,6 +32,8 @@ struct ChartStylePicker: View {
     private func preview(for style: ChartStyle) -> some View {
         let claude = IslandColor.claude
         switch style {
+        case .balance:
+            Text("¥").font(Typography.previewNumber).foregroundStyle(claude)
         case .ring:
             ZStack {
                 Circle()

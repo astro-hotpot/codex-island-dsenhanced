@@ -17,6 +17,9 @@ final class CostStore: ObservableObject {
 
     @Published var claude: ProviderCost = .empty
     @Published var codex: ProviderCost = .empty
+    @Published private(set) var dshDailyTokens: [DailyTokenBucket] = []
+    @Published private(set) var dshLoading = false
+    @Published private(set) var dshReadError = false
     @Published var claudeLoading = false
     @Published var codexLoading = false
     @Published var lastUpdated: Date?
@@ -29,7 +32,7 @@ final class CostStore: ObservableObject {
         switch provider {
         case .claude: return claude
         case .codex: return codex
-        case .grok, .antigravity:
+        case .grok, .antigravity, .deepseek:
             return connectedCosts[provider] ?? ProviderCost(
                 today: .unavailable(label: "Today", reason: "Local usage has not been loaded"),
                 month: .unavailable(label: CostBucketing.currentMonthLabel(), reason: "Local usage has not been loaded"))
@@ -40,7 +43,7 @@ final class CostStore: ObservableObject {
         switch provider {
         case .claude: return claudeLoading
         case .codex: return codexLoading
-        case .grok, .antigravity: return connectedLoading.contains(provider)
+        case .grok, .antigravity, .deepseek: return connectedLoading.contains(provider)
         }
     }
 
@@ -48,7 +51,7 @@ final class CostStore: ObservableObject {
         provider.usesLegacyUsage ? lastUpdated : connectedUpdated[provider]
     }
 
-    var loading: Bool { claudeLoading || codexLoading || !connectedLoading.isEmpty }
+    var loading: Bool { dshLoading || claudeLoading || codexLoading || !connectedLoading.isEmpty }
 
     private static let cacheKey = "MacIsland.costCache.v7"
     private static let cacheEncoder = JSONEncoder()
@@ -77,6 +80,13 @@ final class CostStore: ObservableObject {
             return
         }
         let days = CostSummary.yearHistoryDays()
+        if !dshLoading {
+            dshLoading = true
+            Task.detached(priority: .utility) { [weak self] in
+                let scan = DSHLogReader.scan()
+                await self?.commitDSH(scan)
+            }
+        }
         for provider in [IslandProvider.antigravity, .grok] where !connectedLoading.contains(provider) {
             connectedLoading.insert(provider)
             Task.detached(priority: .utility) { [weak self] in
@@ -119,6 +129,12 @@ final class CostStore: ObservableObject {
                 await self?.commitCodex(cost)
             }
         }
+    }
+
+    private func commitDSH(_ scan: DSHLogReader.Scan) {
+        dshLoading = false
+        dshReadError = scan.unreadableFiles > 0
+        if !dshReadError { dshDailyTokens = scan.buckets }
     }
 
     private func commitLocal(_ cost: ProviderCost, scan: LocalCostScan, provider: IslandProvider) {
@@ -366,6 +382,7 @@ extension IslandProvider {
         case .codex: return .codex
         case .grok: return .grok
         case .antigravity: return .antigravity
+        case .deepseek: return .deepseek
         }
     }
 }

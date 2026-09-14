@@ -78,7 +78,12 @@ struct ProviderSelectionView: View {
 
     @ViewBuilder
     private func connectionRow(_ provider: IslandProvider) -> some View {
-        if provider.usesLegacyUsage {
+        if provider == .deepseek {
+            VStack(alignment: .leading, spacing: 8) {
+                ProviderAccountHeading(provider: provider, plan: "API")
+                DeepSeekSettingsSection()
+            }
+        } else if provider.usesLegacyUsage {
             let value = provider == .claude ? usage.claude : usage.codex
             VStack(alignment: .leading, spacing: 8) {
                 ProviderAccountHeading(provider: provider, plan: value.plan)
