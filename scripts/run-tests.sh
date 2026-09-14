@@ -169,7 +169,7 @@ swiftc \
   Sources/Cost/LogParseCache.swift \
   Sources/Cost/CostUsage.swift \
   Sources/Cost/CostBucketing.swift \
-  Sources/Cost/CostSummary.swift \
+  Sources/Cost/HistoricalUsageDay.swift Sources/Cost/CostSummary.swift \
   Sources/Cost/PricingCatalog.swift \
   Sources/Cost/Pricing.swift \
   Tests/LocalProviderCostTests.swift
@@ -195,3 +195,6 @@ swiftc -o "$OUT_DIR/dsh-reader-tests" \
   Sources/Cost/CostUsage.swift Sources/Cost/CostBucketing.swift \
   Sources/Cost/DSHLogReader.swift Tests/DSHLogReaderTests.swift
 "$OUT_DIR/dsh-reader-tests"
+bash scripts/test-weekly-card.sh
+bash scripts/test-usage-ledger.sh
+bash scripts/test-claude-recovery.sh
