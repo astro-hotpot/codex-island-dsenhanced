@@ -416,3 +416,12 @@
 "The usage archive changed. Scan again before saving." = "用量存档已更改。请重新扫描后再保存。";
 "A selected recovery source is no longer available. Choose it again, then scan." = "所选恢复来源已不可用。请重新选择后再扫描。";
 "Saved token counts exceed the supported range. Check the recovery files before trying again." = "保存的 token 数量超出了支持范围。请检查恢复文件后重试。";
+
+"Hide icons" = "隐藏图标";
+"Hide in the notch until hovered. Overrides always show usage." = "平时隐藏在刘海中，悬停后显示。优先于“始终显示用量”。";
+
+"Glow effects" = "周围灯效";
+"Show the surrounding glow and animated light sweep." = "显示周围辉光和流动灯效。";
+
+"This fork" = "当前修改版";
+"Original project" = "原版项目";

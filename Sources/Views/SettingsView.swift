@@ -13,7 +13,9 @@ struct SettingsView: View {
     @ObservedObject private var visibility = ProviderVisibilityStore.shared
     @ObservedObject private var refreshStore = RefreshIntervalStore.shared
     @ObservedObject private var tokenMode = TokenCountModeStore.shared
+    @ObservedObject private var glow = GlowEnabledStore.shared
     @ObservedObject private var lowPower = LowPowerModeStore.shared
+    @ObservedObject private var hideIcons = HideIconsStore.shared
     @ObservedObject private var alwaysShow = AlwaysShowUsageStore.shared
     @ObservedObject private var alertPrefs = AlertThresholdStore.shared
     @ObservedObject private var spacing = IslandSpacingStore.shared
@@ -240,11 +242,27 @@ struct SettingsView: View {
                 languagePicker
             }
             SettingsRow(
+                title: "Hide icons",
+                subtitle: "Hide in the notch until hovered. Overrides always show usage."
+            ) {
+                SettingsToggle(isOn: hideIcons.enabled) {
+                    hideIcons.enabled.toggle()
+                }
+            }
+            SettingsRow(
                 title: "Always show usage",
                 subtitle: "Keep the percentage and time remaining visible without hovering."
             ) {
                 SettingsToggle(isOn: alwaysShow.enabled) {
                     alwaysShow.enabled.toggle()
+                }
+            }
+            SettingsRow(
+                title: "Glow effects",
+                subtitle: "Show the surrounding glow and animated light sweep."
+            ) {
+                SettingsToggle(isOn: glow.enabled) {
+                    glow.enabled.toggle()
                 }
             }
             SettingsRow(

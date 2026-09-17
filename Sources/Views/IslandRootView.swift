@@ -4,6 +4,7 @@ import AppKit
 struct IslandRootView: View {
     @ObservedObject var model: IslandModel
     @ObservedObject private var visibility = ProviderVisibilityStore.shared
+    @ObservedObject private var glow = GlowEnabledStore.shared
     @ObservedObject private var alwaysShow = AlwaysShowUsageStore.shared
     @State private var hovering = false
     @State private var contentVisible = false
@@ -24,13 +25,14 @@ struct IslandRootView: View {
             ZStack {
                 if model.state == .expanded {
                     ExpandedView(model: model)
-                        .opacity(contentVisible ? 1 : 0)
+                        .transition(.identity)
+                        .opacity(model.hideIcons || contentVisible ? 1 : 0)
                         // Slide down from -8 → 0 on enter pairs with the
                         // 100ms→180ms opacity delay set in onHover. On
                         // exit the offset never matters because the
                         // content fully fades before the shape shrinks.
-                        .offset(y: contentVisible ? 0 : -8)
-                        .allowsHitTesting(contentVisible)
+                        .offset(y: model.hideIcons || contentVisible ? 0 : -8)
+                        .allowsHitTesting(model.hideIcons || contentVisible)
                         .background {
                             GeometryReader { geometry in
                                 Color.clear.preference(key: ExpandedHeightKey.self, value: geometry.size.height)
@@ -41,9 +43,18 @@ struct IslandRootView: View {
                 }
             }
             .frame(width: model.size.width)
-            .onPreferenceChange(ExpandedHeightKey.self) { model.updateExpandedHeight($0) }
+            .frame(height: model.hideIcons ? model.size.height : nil, alignment: .top)
+            .clipShape(IslandShape())
+            .onPreferenceChange(ExpandedHeightKey.self) { height in
+                if model.hideIcons && model.state == .expanded {
+                    withAnimation(.openMorph) { model.updateExpandedHeight(height) }
+                } else {
+                    model.updateExpandedHeight(height)
+                }
+            }
             .background {
-                GlowLayer(isExpanded: model.state == .expanded, hovering: hovering)
+                GlowLayer(isExpanded: model.state == .expanded, hovering: hovering,
+                    effectsEnabled: glow.enabled && !model.isHiddenInNotch)
             }
             .background {
                     // Frosted halo. ultraThinMaterial is a backdrop blur of
@@ -65,7 +76,7 @@ struct IslandRootView: View {
                     //
                     // Purely decorative, so Reduce Transparency drops it
                     // entirely — the solid black silhouette is the UI.
-                    if !reduceTransparency {
+                    if !reduceTransparency && glow.enabled {
                         IslandShape()
                             .fill(.ultraThinMaterial)
                             .padding(-9)
@@ -75,29 +86,35 @@ struct IslandRootView: View {
                     }
                 }
                 .overlay(alignment: .topLeading) {
-                    if model.state != .expanded {
+                    if !model.hideIcons && model.state != .expanded {
                         ProviderMark(provider: visibility.left)
                             .padding(.leading, logoEdgePadding)
                             .padding(.top, max(0, (model.notch.height - 20) / 2))
                     }
                 }
                 .overlay(alignment: .topTrailing) {
-                    if model.state != .expanded, let right = visibility.right {
+                    if !model.hideIcons && model.state != .expanded, let right = visibility.right {
                         ProviderMark(provider: right)
                             .padding(.trailing, logoEdgePadding)
                             .padding(.top, max(0, (model.notch.height - 20) / 2))
                     }
                 }
                 .overlay(alignment: .topLeading) {
-                    if model.state != .compact {
+                    if !model.hideIcons && model.state != .compact {
                         PeekPillOverlay(provider: visibility.left, isLeft: true,
                             topPadding: max(0, (model.notch.height - 14) / 2), pillsVisible: pillsVisible)
                     }
                 }
                 .overlay(alignment: .topTrailing) {
-                    if model.state != .compact, let right = visibility.right {
+                    if !model.hideIcons && model.state != .compact, let right = visibility.right {
                         PeekPillOverlay(provider: right, isLeft: false,
                             topPadding: max(0, (model.notch.height - 14) / 2), pillsVisible: pillsVisible)
+                    }
+                }
+                .overlay {
+                    if model.hideIcons && model.state != .expanded {
+                        hiddenModeBar
+                            .transition(.identity)
                     }
                 }
                 .contentShape(IslandShape())
@@ -135,7 +152,9 @@ struct IslandRootView: View {
                     guard model.state == .peek || model.state == .compact else { return }
                     withAnimation(.openMorph) {
                         model.setState(.expanded)
+                        if model.hideIcons { contentVisible = true }
                     }
+                    if model.hideIcons { return }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
                         guard model.state == .expanded else { return }
                         withAnimation(.strongEaseOut) {
@@ -155,6 +174,18 @@ struct IslandRootView: View {
                 }
                 .onHover { h in
                     hovering = h
+                    if model.hideIcons {
+                        withAnimation(h ? .openMorph : .closeMorph) {
+                            if h && model.state == .compact {
+                                model.setState(.peek)
+                            } else if !h {
+                                contentVisible = false
+                                pillsVisible = false
+                                model.setState(.compact)
+                            }
+                        }
+                        return
+                    }
                     if h {
                         // Trackpad tap on hover-in. .levelChange is closer to
                         // a volume-key tick than the .generic notification
@@ -181,7 +212,7 @@ struct IslandRootView: View {
                         // EXIT: pills fade first (unless we're pinning peek),
                         // then the shape settles at the rest state — `.compact`
                         // normally, `.peek` under always-show.
-                        if !alwaysShow.enabled {
+                        if !keepUsageVisible {
                             withAnimation(.easeOut(duration: 0.08)) {
                                 pillsVisible = false
                             }
@@ -210,7 +241,7 @@ struct IslandRootView: View {
                             // Coming out of `.expanded` under always-show, the
                             // pills were hidden by the open-panel branch — bring
                             // them back as the shape resettles at peek.
-                            if alwaysShow.enabled && !pillsVisible {
+                            if keepUsageVisible && !pillsVisible {
                                 withAnimation(.easeOut(duration: 0.18)) {
                                     pillsVisible = true
                                 }
@@ -229,12 +260,12 @@ struct IslandRootView: View {
             // No animation here — the window is just becoming visible, so the
             // user sees the silhouette appear already at peek width rather
             // than morphing out under their gaze.
-            if alwaysShow.enabled && model.state == .compact {
+            if keepUsageVisible && model.state == .compact {
                 model.setState(.peek)
                 pillsVisible = true
             }
         }
-        .onChange(of: alwaysShow.enabled) { enabled in
+        .onChange(of: keepUsageVisible) { enabled in
             // Live toggle — defer to the user's current interaction. If they
             // happen to be hovering, the hover state machine owns the morph
             // and will land on the new rest state on hover-out. If the panel
@@ -258,10 +289,10 @@ struct IslandRootView: View {
                         pillsVisible = false
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
-                        // Re-check `alwaysShow.enabled` — if the user toggled
+                        // Re-check `keepUsageVisible` — if the user toggled
                         // back on inside the 100ms wait, leave the peek state
                         // alone instead of fighting their newer intent.
-                        guard !hovering, model.state == .peek, !alwaysShow.enabled else { return }
+                        guard !hovering, model.state == .peek, !keepUsageVisible else { return }
                         withAnimation(.closeMorph) {
                             model.setState(.compact)
                         }
@@ -284,7 +315,7 @@ struct IslandRootView: View {
     /// engine signals a fresh threshold crossing. Suppressed when the panel
     /// is already expanded — the user is already looking at the data.
     private func handlePulse(_ event: AlertEngine.PulseEvent) {
-        guard model.state != .expanded else { return }
+        guard model.state != .expanded, !model.hideIcons else { return }
 
         if model.state == .compact {
             withAnimation(.openMorph) {
@@ -306,14 +337,14 @@ struct IslandRootView: View {
             // lifecycle from here. Under always-show, `.peek` IS the rest
             // state, so the pulse just resolves into the steady-state pill
             // rather than collapsing back to compact.
-            guard !hovering, model.state == .peek, !alwaysShow.enabled else { return }
+            guard !hovering, model.state == .peek, !keepUsageVisible else { return }
             withAnimation(.easeOut(duration: 0.08)) {
                 pillsVisible = false
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
                 // Mirror the outer 4-second guard — if always-show flipped on
                 // during the tiny inner wait, leave the peek state alone.
-                guard !hovering, model.state == .peek, !alwaysShow.enabled else { return }
+                guard !hovering, model.state == .peek, !keepUsageVisible else { return }
                 withAnimation(.closeMorph) {
                     model.setState(.compact)
                 }
@@ -321,14 +352,16 @@ struct IslandRootView: View {
         }
     }
 
+    private var keepUsageVisible: Bool { alwaysShow.enabled && !model.hideIcons }
+
     private var restState: IslandModel.State {
-        alwaysShow.enabled ? .peek : .compact
+        keepUsageVisible ? .peek : .compact
     }
 
     private var accessibilityHintForState: String {
         switch model.state {
         case .compact:
-            return alwaysShow.enabled
+            return keepUsageVisible
                 ? L10n.tr("Click to expand. Command-click to cycle visualization.")
                 : L10n.tr("Hover to peek usage. Click to expand. Command-click to cycle visualization.")
         case .peek:     return L10n.tr("Click to expand. Command-click to cycle visualization.")
@@ -339,6 +372,44 @@ struct IslandRootView: View {
         }
     }
 
+    private var hiddenModeBar: some View {
+        GeometryReader { geometry in
+            let wingWidth = model.tabWidth + model.pillSlotWidth
+            let revealedWidth = max(0, (geometry.size.width - model.notch.width) / 2)
+            ZStack {
+                ZStack(alignment: .topLeading) {
+                    PeekPillOverlay(provider: visibility.left, isLeft: true,
+                        topPadding: max(0, (model.notch.height - 14) / 2), pillsVisible: true)
+                    ProviderMark(provider: visibility.left)
+                        .padding(.leading, model.pillSlotWidth + 9)
+                        .padding(.top, max(0, (model.notch.height - 20) / 2))
+                }
+                .frame(width: wingWidth, height: model.notch.height, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if let right = visibility.right {
+                    ZStack(alignment: .topTrailing) {
+                        PeekPillOverlay(provider: right, isLeft: false,
+                            topPadding: max(0, (model.notch.height - 14) / 2), pillsVisible: true)
+                        ProviderMark(provider: right)
+                            .padding(.trailing, model.pillSlotWidth + 9)
+                            .padding(.top, max(0, (model.notch.height - 20) / 2))
+                    }
+                    .frame(width: wingWidth, height: model.notch.height, alignment: .topTrailing)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+            .mask {
+                HStack(spacing: 0) {
+                    Rectangle().frame(width: revealedWidth)
+                    Spacer(minLength: 0)
+                    Rectangle().frame(width: revealedWidth)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
     /// Logo's distance from the silhouette's leading/trailing edge. In
     /// `.peek` we offset the logo inward by `pillSlotWidth` so it stays
     /// physically pinned to its compact position while the silhouette grows
@@ -347,7 +418,8 @@ struct IslandRootView: View {
     /// behavior; expanded panel layout depends on it).
     private var logoEdgePadding: CGFloat {
         switch model.state {
-        case .compact, .expanded: return 9
+        case .compact: return model.hideIcons ? model.pillSlotWidth + 9 : 9
+        case .expanded: return 9
         case .peek:               return model.pillSlotWidth + 9
         }
     }
@@ -361,6 +433,7 @@ struct IslandRootView: View {
 private struct GlowLayer: View {
     let isExpanded: Bool
     let hovering: Bool
+    let effectsEnabled: Bool
 
     @ObservedObject private var usageStore = UsageStore.shared
     @ObservedObject private var costStore = CostStore.shared
@@ -371,7 +444,7 @@ private struct GlowLayer: View {
     var body: some View {
         ZStack {
             LoadingSweep(
-                active: !occlusion.isOccluded
+                active: effectsEnabled && !occlusion.isOccluded
                     && (lowPower.effectiveEnabled ? glowEventActive : true),
                 tint: glowColor
             )
@@ -391,7 +464,7 @@ private struct GlowLayer: View {
                 // ambient 0.35 the way it always has.
                 .shadow(
                     color: glowColor.opacity(
-                        lowPower.effectiveEnabled ? (glowEventActive ? 0.35 : 0) : 0.35
+                        effectsEnabled ? (lowPower.effectiveEnabled ? (glowEventActive ? 0.35 : 0) : 0.35) : 0
                     ),
                     radius: 14, y: 0
                 )

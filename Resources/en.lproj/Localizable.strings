@@ -416,3 +416,12 @@
 "The usage archive changed. Scan again before saving." = "The usage archive changed. Scan again before saving.";
 "A selected recovery source is no longer available. Choose it again, then scan." = "A selected recovery source is no longer available. Choose it again, then scan.";
 "Saved token counts exceed the supported range. Check the recovery files before trying again." = "Saved token counts exceed the supported range. Check the recovery files before trying again.";
+
+"Hide icons" = "Hide icons";
+"Hide in the notch until hovered. Overrides always show usage." = "Hide in the notch until hovered. Overrides always show usage.";
+
+"Glow effects" = "Glow effects";
+"Show the surrounding glow and animated light sweep." = "Show the surrounding glow and animated light sweep.";
+
+"This fork" = "This fork";
+"Original project" = "Original project";

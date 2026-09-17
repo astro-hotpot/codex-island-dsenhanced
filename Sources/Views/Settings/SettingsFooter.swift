@@ -7,12 +7,14 @@ import AppKit
 struct SettingsFooter: View {
     @State private var quitHovered = false
 
-    private static let githubURL = URL(string: "https://github.com/ericjypark/codex-island")!
+    private static let forkURL = URL(string: "https://github.com/houtianyihou/codex-island-dsavailable")!
+    private static let upstreamURL = URL(string: "https://github.com/ericjypark/codex-island")!
     private static let licenseURL = URL(string: "https://github.com/ericjypark/codex-island/blob/main/LICENSE")!
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            link("GitHub", url: Self.githubURL)
+            link("This fork", url: Self.forkURL)
+            link("Original project", url: Self.upstreamURL)
             link("License", url: Self.licenseURL)
 
             Spacer()
@@ -49,6 +51,7 @@ struct SettingsFooter: View {
         DottedLink(title: title) {
             NSWorkspace.shared.open(url)
         }
+        .help(url.absoluteString)
     }
 }
 

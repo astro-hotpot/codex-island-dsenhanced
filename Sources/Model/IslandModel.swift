@@ -45,6 +45,10 @@ final class IslandModel: ObservableObject {
     /// `notch` (which has the user's spacing override applied) so
     /// `updateNotch`'s diff guard isn't confused by override-induced
     /// width changes that originate from the store, not the screen.
+    @Published private(set) var hideIcons = HideIconsStore.shared.enabled
+
+    var isHiddenInNotch: Bool { hideIcons && state == .compact }
+
     private var rawNotch: NotchInfo
 
     private var subs: Set<AnyCancellable> = []
@@ -54,6 +58,14 @@ final class IslandModel: ObservableObject {
         self.notch = Self.applyOverride(to: notch, width: IslandSpacingStore.shared.width)
         recomputeSize()
         subscribeToSpacingStore()
+        HideIconsStore.shared.$enabled
+            .dropFirst()
+            .sink { [weak self] enabled in
+                guard let self else { return }
+                self.hideIcons = enabled
+                self.recomputeSize()
+            }
+            .store(in: &subs)
     }
 
     func setState(_ new: State) {
@@ -142,7 +154,7 @@ final class IslandModel: ObservableObject {
         switch state {
         case .compact:
             size = CGSize(
-                width: notch.width + tabWidth * 2,
+                width: hideIcons ? notch.width : notch.width + tabWidth * 2,
                 height: notch.height
             )
         case .peek:

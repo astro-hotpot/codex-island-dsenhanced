@@ -5,17 +5,10 @@ struct NotchInfo {
     let height: CGFloat
     let hasNotch: Bool
 
-    /// `screen.frame.maxY - screen.visibleFrame.maxY` reports the actual
-    /// pixel distance between the top of the screen and the top of the app
-    /// content area — i.e., where the menu bar visually ends. Use that as
-    /// the silhouette height so the dark pill's bottom edge always sits
-    /// flush with the menu bar's bottom, in both default notched mode
-    /// (≈37pt) and "Scaled to avoid the notch" mode (≈24pt, menu bar sits
-    /// below the dead notch area).
-    ///
-    /// `safeAreaInsets.top` reports the *physical notch* and can disagree
-    /// with the visible menu bar in scaled modes — use it only as a
-    /// fallback when visibleFrame is unmeasurable (auto-hide menu bar).
+    /// On notched screens, align the silhouette with the physical notch's
+    /// safe-area boundary. visibleFrame measures the menu bar instead and
+    /// can leave the island shorter than the hardware notch.
+    /// Non-notched screens continue to use the visible menu-bar height.
     ///
     /// auxiliaryTopLeftArea / auxiliaryTopRightArea give the menu-bar regions
     /// on either side of the notch; the notch's own width is
@@ -25,7 +18,7 @@ struct NotchInfo {
             return NotchInfo(width: IslandSpacingStore.compactWidth, height: menuBarFallback(), hasNotch: false)
         }
         let safeTop = screen.safeAreaInsets.top
-        let visualHeight = visibleMenuBarHeight(of: screen)
+        let visualHeight = safeTop > 0 ? safeTop : visibleMenuBarHeight(of: screen)
 
         if safeTop > 0 {
             let leftW = screen.auxiliaryTopLeftArea?.width ?? 0
