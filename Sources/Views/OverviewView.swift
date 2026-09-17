@@ -302,6 +302,7 @@ private struct ContributionGrid: View {
         .frame(width: gridWidth, height: gridHeight + 19, alignment: .topLeading)
         .frame(maxWidth: .infinity, minHeight: gridHeight + 19, maxHeight: gridHeight + 19, alignment: .leading)
         .clipped()
+        .drawingGroup(opaque: false, colorMode: .nonLinear)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(L10n.tr("Daily token usage in %@", OverviewContent.currentYearString))
     }
