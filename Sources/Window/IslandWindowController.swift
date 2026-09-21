@@ -87,7 +87,7 @@ final class IslandWindowController {
         window.ignoresMouseEvents = true
 
         let handler: (NSEvent) -> Void = { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.hasSeenMouseEvent = true
                 self.invalidateTrackingTimerIfReady()
@@ -105,7 +105,7 @@ final class IslandWindowController {
         // Self-invalidates once any real mouseMoved arrives, so steady-state
         // doesn't pay the 10Hz timer cost forever.
         trackingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.updateMouseEventsBasedOnCursor() }
+            Task { @MainActor [weak self] in self?.updateMouseEventsBasedOnCursor() }
         }
     }
 
@@ -191,7 +191,7 @@ final class IslandWindowController {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.repositionForCurrentScreen() }
+            Task { @MainActor [weak self] in self?.repositionForCurrentScreen() }
         }
     }
 
@@ -210,9 +210,9 @@ final class IslandWindowController {
             object: window,
             queue: .main
         ) { [weak self] _ in
-            guard let self else { return }
-            let visible = self.window.occlusionState.contains(.visible)
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let visible = self.window.occlusionState.contains(.visible)
                 WindowOcclusionStore.shared.update(isVisible: visible)
             }
         }
@@ -229,14 +229,14 @@ final class IslandWindowController {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.fadeOut() }
+            Task { @MainActor [weak self] in self?.fadeOut() }
         }
         sessionActiveObserver = dc.addObserver(
             forName: NSNotification.Name("com.apple.screenIsUnlocked"),
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.fadeIn() }
+            Task { @MainActor [weak self] in self?.fadeIn() }
         }
     }
 

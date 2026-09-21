@@ -127,13 +127,6 @@ final class UsageStore: ObservableObject {
         loading = true
         refreshTask?.cancel()
         refreshTask = Task {
-            defer {
-                self.loading = false
-                if self.refreshRequestedAfterSelection {
-                    self.refreshRequestedAfterSelection = false
-                    self.refresh()
-                }
-            }
             let selection = ProviderVisibilityStore.shared.selected
             async let codexResult: AppUsage? = selection.contains(.codex) ? UsageFetcher.fetchCodex() : nil
             async let codexResetCreditsResult = selection.contains(.codex) ? UsageFetcher.fetchCodexResetCredits() : nil
@@ -150,7 +143,7 @@ final class UsageStore: ObservableObject {
             // dead-path errors — drop them so the supersedes refresh
             // doesn't have a brief "cancelled" caption flash to overwrite.
             if Task.isCancelled {
-                self.loading = false
+                self.finishRefresh()
                 return
             }
 
@@ -234,7 +227,15 @@ final class UsageStore: ObservableObject {
             if let c { UsageHistoryStore.shared.record(provider: .codex, usage: c, at: now) }
             if let cl { UsageHistoryStore.shared.record(provider: .claude, usage: cl, at: now) }
             self.lastUpdated = now
-            self.loading = false
+            self.finishRefresh()
+        }
+    }
+
+    private func finishRefresh() {
+        loading = false
+        if refreshRequestedAfterSelection {
+            refreshRequestedAfterSelection = false
+            refresh()
         }
     }
 
@@ -408,7 +409,7 @@ final class UsageStore: ObservableObject {
         intervalCancellable = RefreshIntervalStore.shared.$seconds
             .dropFirst()
             .sink { [weak self] _ in
-                Task { @MainActor in self?.armTimer() }
+                Task { @MainActor [weak self] in self?.armTimer() }
             }
         startNetworkMonitor()
         startSleepWakeObservers()
@@ -439,7 +440,7 @@ final class UsageStore: ObservableObject {
         pollTimer?.invalidate()
         nextExpectedFire = Date().addingTimeInterval(pollInterval)
         pollTimer = Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.timerFired() }
+            Task { @MainActor [weak self] in self?.timerFired() }
         }
     }
 

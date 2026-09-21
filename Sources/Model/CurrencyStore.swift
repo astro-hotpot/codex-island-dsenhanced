@@ -16,14 +16,14 @@ enum DisplayCurrency: String, CaseIterable, Codable, Identifiable {
 
     var symbol: String {
         switch self {
-        case .usd: "$"
-        case .cny, .jpy: "¥"
-        case .eur: "€"
-        case .gbp: "£"
-        case .krw: "₩"
-        case .cad: "C$"
-        case .aud: "A$"
-        case .chf: "CHF "
+        case .usd: return "$"
+        case .cny, .jpy: return "¥"
+        case .eur: return "€"
+        case .gbp: return "£"
+        case .krw: return "₩"
+        case .cad: return "C$"
+        case .aud: return "A$"
+        case .chf: return "CHF "
         }
     }
 
@@ -142,7 +142,7 @@ final class CurrencyStore: ObservableObject {
         Task { await refreshIfNeeded() }
         refreshTimer?.invalidate()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 6 * 60 * 60, repeats: true) { [weak self] _ in
-            Task { @MainActor in await self?.refreshIfNeeded() }
+            Task { @MainActor [weak self] in await self?.refreshIfNeeded() }
         }
     }
 

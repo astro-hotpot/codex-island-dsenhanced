@@ -7,7 +7,7 @@ extension View {
     @ViewBuilder
     func numericTransition(value: Double) -> some View {
         if #available(macOS 14.0, *) {
-            self.contentTransition(.numericText(value: value))
+            self.contentTransition(.numericText())
         } else {
             self.contentTransition(.opacity)
         }

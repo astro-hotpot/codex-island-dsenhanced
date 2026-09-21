@@ -234,13 +234,63 @@
 
 "Balance connection not configured" = "Balance connection not configured";
 
-"Available balance" = "Available balance";
+"Account balance" = "Account balance";
+
+"Total token usage" = "Total token usage";
+
+"1 API key" = "1 API key";
+
+"No usage in this period" = "No usage in this period";
+
+"Cost —" = "Cost —";
+
+"Using the DSH / DeepSeek worker key" = "Using the DSH / DeepSeek worker key";
+
+"Using the saved CodexIsland API key" = "Using the saved CodexIsland API key";
+
+"Using the migrated legacy key file" = "Using the migrated legacy key file";
+
+"DeepSeek API key configured" = "DeepSeek API key configured";
 
 "Insufficient balance" = "Insufficient balance";
 
 "Refresh balance" = "Refresh balance";
 
-"Balance unavailable; check key file and connection" = "Balance unavailable; check key file and connection";
+"Last 30 days" = "Last 30 days";
+
+"Updated %@" = "Updated %@";
+
+"tracked key" = "tracked key";
+
+"%d API keys" = "%d API keys";
+
+"No usage in the last 30 days" = "No usage in the last 30 days";
+
+"Platform usage unavailable" = "Platform usage unavailable";
+
+"DeepSeek API key not configured" = "DeepSeek API key not configured";
+
+"DeepSeek Platform token not configured" = "DeepSeek Platform token not configured";
+
+"API key stored in Keychain" = "API key stored in Keychain";
+
+"DeepSeek API authentication failed" = "DeepSeek API authentication failed";
+
+"DeepSeek network connection failed" = "DeepSeek network connection failed";
+
+"DeepSeek service is temporarily unavailable" = "DeepSeek service is temporarily unavailable";
+
+"DeepSeek returned an unexpected status (%d)" = "DeepSeek returned an unexpected status (%d)";
+
+"DeepSeek returned an unexpected response format" = "DeepSeek returned an unexpected response format";
+
+"DeepSeek Keychain error %d: %@" = "DeepSeek Keychain error %d: %@";
+
+"Legacy DeepSeek key file could not be read" = "Legacy DeepSeek key file could not be read";
+
+"Legacy DeepSeek key file does not contain exactly one API key" = "Legacy DeepSeek key file does not contain exactly one API key";
+
+"DeepSeek API key could not be saved to Keychain" = "DeepSeek API key could not be saved to Keychain";
 
 "Select DeepSeek to display balance" = "Select DeepSeek to display balance";
 

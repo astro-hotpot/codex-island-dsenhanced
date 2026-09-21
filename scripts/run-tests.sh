@@ -10,12 +10,70 @@ cd "$(dirname "$0")/.."
 OUT_DIR=$(mktemp -d)
 trap 'rm -rf "$OUT_DIR"' EXIT
 
+# The guard greps below only ask "does this pattern appear". ripgrep is used
+# when installed, but a missing rg must not silently disable the guards the
+# way a bare `rg -q` inside an `if` does — fall back to grep -E.
+if command -v rg >/dev/null 2>&1; then
+  matches() { rg -q "$1" "${@:2}"; }
+else
+  matches() { grep -Eq "$1" "${@:2}"; }
+fi
+
 swiftc -parse-as-library -o "$OUT_DIR/currency-tests" \
   Sources/Model/CurrencyStore.swift \
   Sources/Model/AppLanguageStore.swift \
   Sources/Localization/L10n.swift \
   Tests/CurrencyStoreTests.swift
 "$OUT_DIR/currency-tests"
+
+swiftc \
+  -parse-as-library \
+  -framework Security \
+  -o "$OUT_DIR/deepseek-platform-usage-tests" \
+  Sources/Model/AppEnvironment.swift \
+  Sources/Cost/TokenEvent.swift \
+  Sources/Cost/LogParseCache.swift \
+  Sources/Cost/CodexLogReader.swift \
+  Sources/Usage/DeepSeekPlatformUsage.swift \
+  Tests/DeepSeekPlatformUsageTests.swift
+"$OUT_DIR/deepseek-platform-usage-tests"
+
+swiftc \
+  -parse-as-library \
+  -framework Security \
+  -o "$OUT_DIR/deepseek-balance-tests" \
+  Sources/Model/AppEnvironment.swift \
+  Sources/Model/AppLanguageStore.swift \
+  Sources/Localization/L10n.swift \
+  Sources/Usage/DeepSeekPlatformUsage.swift \
+  Sources/Usage/DeepSeekBalanceStore.swift \
+  Tests/DeepSeekBalanceTests.swift
+"$OUT_DIR/deepseek-balance-tests"
+
+if matches 'workerKeyNotFound|duplicateWorkerKeyName|resolveTrackingID|configureKeyName|configuredKeyName' \
+  Sources/Usage/DeepSeekPlatformUsage.swift Sources/Views/DeepSeekHistoryBlock.swift; then
+  echo "DeepSeek name discovery/binding logic is still present"
+  exit 1
+fi
+
+if matches '\.codex-deepseek/sessions|WKWebView|WebKit|LocalStorage|sessionStorage' \
+  Sources/Usage/DeepSeekPlatformUsage.swift Sources/Views/DeepSeekHistoryBlock.swift; then
+  echo "DeepSeek Worker billing has a forbidden local-session or browser dependency"
+  exit 1
+fi
+
+if ! matches '"Account balance" = "账户可用余额"' Resources/zh-Hans.lproj/Localizable.strings \
+  || ! matches 'L10n\.tr\("Account balance"\)' Sources/Views/DeepSeekBalanceBlock.swift \
+  || matches 'Available balance' Sources/Views/DeepSeekBalanceBlock.swift; then
+  echo "DeepSeek balance is no longer presented as account balance"
+  exit 1
+fi
+
+if ! matches 'DeepSeekAccountUsageStore' Sources/Views/DeepSeekHistoryBlock.swift \
+  || ! matches 'fetchAccountUsage' Sources/Usage/DeepSeekPlatformUsage.swift; then
+  echo "DeepSeek token usage is no longer account-wide"
+  exit 1
+fi
 
 swiftc \
   -parse-as-library \

@@ -88,9 +88,9 @@ struct SettingsView: View {
 
         var label: String {
             switch self {
-            case .general:   "General"
-            case .display:   "Display"
-            case .providers: "Providers"
+            case .general:   return "General"
+            case .display:   return "Display"
+            case .providers: return "Providers"
             }
         }
     }

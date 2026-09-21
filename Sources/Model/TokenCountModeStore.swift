@@ -13,8 +13,8 @@ enum TokenCountMode: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .all:      L10n.tr("All tokens")
-        case .billable: L10n.tr("Input + output")
+        case .all:      return L10n.tr("All tokens")
+        case .billable: return L10n.tr("Input + output")
         }
     }
 }
