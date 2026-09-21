@@ -31,6 +31,7 @@ private enum OverviewProvider: String, CaseIterable {
 private struct OverviewContent: View {
     let allDays: [OverviewDay]
     let loading: Bool
+    @ObservedObject private var screenPref = ScreenPref.shared
     @State private var selectedDate: Date?
     @State private var selectedProvider: OverviewProvider?
 
@@ -93,7 +94,7 @@ private struct OverviewContent: View {
         .padding(.top, 4)
         .padding(.bottom, 6)
         .animation(.detailExpand, value: selectedDate)
-        .onReceive(ScreenPref.shared.$screen.dropFirst()) { screen in
+        .onReceive(screenPref.$screen.dropFirst()) { screen in
             guard screen != .overview else { return }
             if selectedDate != nil {
                 var transaction = Transaction()
@@ -703,29 +704,34 @@ private struct ProviderSplitRow: View {
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 3) {
             ForEach(usage) { item in
-                Button {
-                    selectedProvider = selectedProvider == item.provider ? nil : item.provider
-                } label: {
-                    HStack(spacing: 4) {
-                        Circle().fill(item.provider.color).frame(width: 5, height: 5)
-                        Text("\(item.provider.name) \(share(item.tokens))")
-                            .font(Typography.caption)
-                            .foregroundStyle(.white.opacity(selectedProvider == item.provider ? 0.95 : 0.46))
-                            .lineLimit(1)
-                    }
-                    .padding(.vertical, 3)
-                    .padding(.horizontal, 4)
-                    .background(selectedProvider == item.provider ? item.provider.color.opacity(0.18) : .clear,
-                                in: RoundedRectangle(cornerRadius: 4))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help(selectedProvider == item.provider ? "Show all providers" : "Show only \(item.provider.name)")
-                .accessibilityLabel("\(item.provider.name), \(share(item.tokens)) of all tokens")
-                .accessibilityAddTraits(selectedProvider == item.provider ? .isSelected : [])
+                providerButton(item)
             }
         }
         .frame(width: 230)
+    }
+
+    private func providerButton(_ item: ProviderTokenUsage) -> some View {
+        let selected = selectedProvider == item.provider
+        return Button {
+            selectedProvider = selected ? nil : item.provider
+        } label: {
+            HStack(spacing: 4) {
+                Circle().fill(item.provider.color).frame(width: 5, height: 5)
+                Text("\(item.provider.name) \(share(item.tokens))")
+                    .font(Typography.caption)
+                    .foregroundStyle(.white.opacity(selected ? 0.95 : 0.46))
+                    .lineLimit(1)
+            }
+            .padding(.vertical, 3)
+            .padding(.horizontal, 4)
+            .background(selected ? item.provider.color.opacity(0.18) : .clear,
+                        in: RoundedRectangle(cornerRadius: 4))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(selected ? "Show all providers" : "Show only \(item.provider.name)")
+        .accessibilityLabel("\(item.provider.name), \(share(item.tokens)) of all tokens")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func share(_ value: Int) -> String {

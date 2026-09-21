@@ -58,8 +58,9 @@ final class ProviderConnectionStore: ObservableObject {
     func refresh(_ provider: IslandProvider, manually: Bool = false) {
         if provider == .deepseek {
             Task { await DeepSeekBalanceStore.shared.refresh() }
-            DeepSeekHistoryStore.shared.refresh()
-            DeepSeekHistoryStore.second.refresh()
+            Task { await DeepSeekWorkerBillingStore.shared.refresh() }
+            Task { await DeepSeekAccountCostStore.shared.refresh() }
+            Task { await DeepSeekAccountUsageStore.shared.refresh() }
             return
         }
         guard !provider.usesLegacyUsage, !loading.contains(provider) else { return }
@@ -86,47 +87,54 @@ final class ProviderConnectionStore: ObservableObject {
         lastAttempt[provider] = Date()
         let generation = UUID()
         generations[provider] = generation
-        tasks[provider] = Task {
-            defer {
-                if generations[provider] == generation {
-                    loading.remove(provider)
-                    tasks[provider] = nil
-                    generations[provider] = nil
+        tasks[provider] = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.performRefresh(provider)
+            self.finishRefresh(provider, generation: generation)
+        }
+    }
+
+    private func performRefresh(_ provider: IslandProvider) async {
+        do {
+            let fetched = try await ProviderSessionRecovery.fetch {
+                try await (provider == .grok ? GrokConnection.fetch() : AntigravityConnection.fetch())
+            } renew: {
+                try await ProviderSessionRecovery.renew(provider == .grok ? "grok" : "agy")
+            }
+            guard !Task.isCancelled else { return }
+            snapshots[provider] = fetched
+            if fetched.accountID != nil || fetched.account != nil {
+                for limit in fetched.limits {
+                    UsageHistoryStore.shared.record(key: fetched.historyKey(provider: provider, limit: limit),
+                                                    window: limit.window, at: fetched.updatedAt ?? Date())
                 }
             }
-            do {
-                let fetched = try await ProviderSessionRecovery.fetch {
-                    try await (provider == .grok ? GrokConnection.fetch() : AntigravityConnection.fetch())
-                } renew: {
-                    try await ProviderSessionRecovery.renew(provider == .grok ? "grok" : "agy")
-                }
-                guard !Task.isCancelled else { return }
-                snapshots[provider] = fetched
-                if fetched.accountID != nil || fetched.account != nil {
-                    for limit in fetched.limits {
-                        UsageHistoryStore.shared.record(key: fetched.historyKey(provider: provider, limit: limit),
-                                                        window: limit.window, at: fetched.updatedAt ?? Date())
-                    }
-                }
-            } catch {
-                guard !Task.isCancelled else { return }
-                var message: String
-                var needsLogin = false
-                switch error {
-                case ProviderConnectionError.signIn, ProviderConnectionError.expired,
-                     ProviderConnectionError.http(401):
-                    needsLogin = true
-                    message = provider == .grok ? "Run grok login, then refresh the connection."
-                        : "Open agy CLI to restore your session, then refresh the connection."
-                case ProviderConnectionError.http(429):
-                    cooldown[provider] = Date().addingTimeInterval(900)
-                    message = "Rate limited. Retrying in 15 minutes."
-                default:
-                    message = provider == .grok ? "Could not read Grok usage. Try refreshing the connection."
-                        : "Could not read Antigravity usage. Check your agy CLI login, then refresh."
-                }
-                snapshots[provider] = ConnectedUsage(message: message, needsLogin: needsLogin)
+        } catch {
+            guard !Task.isCancelled else { return }
+            var message: String
+            var needsLogin = false
+            switch error {
+            case ProviderConnectionError.signIn, ProviderConnectionError.expired,
+                 ProviderConnectionError.http(401):
+                needsLogin = true
+                message = provider == .grok ? "Run grok login, then refresh the connection."
+                    : "Open agy CLI to restore your session, then refresh the connection."
+            case ProviderConnectionError.http(429):
+                cooldown[provider] = Date().addingTimeInterval(900)
+                message = "Rate limited. Retrying in 15 minutes."
+            default:
+                message = provider == .grok ? "Could not read Grok usage. Try refreshing the connection."
+                    : "Could not read Antigravity usage. Check your agy CLI login, then refresh."
             }
+            snapshots[provider] = ConnectedUsage(message: message, needsLogin: needsLogin)
+        }
+    }
+
+    private func finishRefresh(_ provider: IslandProvider, generation: UUID) {
+        if generations[provider] == generation {
+            loading.remove(provider)
+            tasks[provider] = nil
+            generations[provider] = nil
         }
     }
 

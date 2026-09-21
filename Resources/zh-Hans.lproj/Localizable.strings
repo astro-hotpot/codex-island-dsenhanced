@@ -234,13 +234,63 @@
 
 "Balance connection not configured" = "余额查询尚未配置";
 
-"Available balance" = "可用余额";
+"Account balance" = "账户可用余额";
+
+"Total token usage" = "总 Token 使用量";
+
+"1 API key" = "1 个 API Key";
+
+"No usage in this period" = "该时段无用量";
+
+"Cost —" = "消费 —";
+
+"Using the DSH / DeepSeek worker key" = "正在使用 DSH / DeepSeek Worker 的 API Key";
+
+"Using the saved CodexIsland API key" = "正在使用 CodexIsland 保存的 API Key";
+
+"Using the migrated legacy key file" = "正在使用迁移的旧版密钥文件";
+
+"DeepSeek API key configured" = "已配置 DeepSeek API Key";
 
 "Insufficient balance" = "余额不足";
 
 "Refresh balance" = "刷新余额";
 
-"Balance unavailable; check key file and connection" = "余额查询失败，请检查密钥文件与网络";
+"Last 30 days" = "近 30 天消费";
+
+"Updated %@" = "更新于 %@";
+
+"tracked key" = "已跟踪的 Key";
+
+"%d API keys" = "%d 个 API Key";
+
+"No usage in the last 30 days" = "近 30 天无消费记录";
+
+"Platform usage unavailable" = "Platform 用量暂不可用";
+
+"DeepSeek API key not configured" = "未配置 DeepSeek API Key";
+
+"DeepSeek Platform token not configured" = "未配置 DeepSeek Platform Token";
+
+"API key stored in Keychain" = "API Key 已存入钥匙串";
+
+"DeepSeek API authentication failed" = "DeepSeek API 认证失败";
+
+"DeepSeek network connection failed" = "网络连接失败";
+
+"DeepSeek service is temporarily unavailable" = "DeepSeek 服务暂时不可用";
+
+"DeepSeek returned an unexpected status (%d)" = "DeepSeek 返回异常状态（%d）";
+
+"DeepSeek returned an unexpected response format" = "DeepSeek 返回格式异常";
+
+"DeepSeek Keychain error %d: %@" = "DeepSeek 钥匙串错误 %d：%@";
+
+"Legacy DeepSeek key file could not be read" = "旧版 DeepSeek 密钥文件无法读取";
+
+"Legacy DeepSeek key file does not contain exactly one API key" = "旧版 DeepSeek 密钥文件中未找到唯一的 API Key";
+
+"DeepSeek API key could not be saved to Keychain" = "DeepSeek API Key 无法写入钥匙串";
 
 "Select DeepSeek to display balance" = "选择 DeepSeek 供应商以显示余额";
 

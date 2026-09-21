@@ -8,31 +8,31 @@ enum AppLanguage: String, CaseIterable, Hashable {
 
     var resourceName: String? {
         switch self {
-        case .auto: nil
-        default: rawValue
+        case .auto: return nil
+        default: return rawValue
         }
     }
 
     var localeIdentifier: String {
         switch self {
-        case .auto: Locale.current.identifier
-        case .en: "en"
-        case .zhHans: "zh-Hans"
+        case .auto: return Locale.current.identifier
+        case .en: return "en"
+        case .zhHans: return "zh-Hans"
         }
     }
 
     var menuLabel: String {
         switch self {
-        case .auto: L10n.tr("Auto")
-        case .en: "English"
-        case .zhHans: "简体中文"
+        case .auto: return L10n.tr("Auto")
+        case .en: return "English"
+        case .zhHans: return "简体中文"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .auto: L10n.tr("Follows macOS")
-        default: menuLabel
+        case .auto: return L10n.tr("Follows macOS")
+        default: return menuLabel
         }
     }
 }
