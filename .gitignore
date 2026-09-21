@@ -36,3 +36,29 @@ skills-lock.json
 AGENTS.md
 # Root guidance is shared with Codex code review.
 !/AGENTS.md
+
+# Credentials and local secret material must never reach the fork, even
+# though this project needs no .env of its own: the app reads DeepSeek API
+# keys and Platform tokens from the macOS Keychain, and the DeepSeek worker
+# key lives outside the repo. A stray copy dropped here would otherwise be
+# one `git add -A` away from being published.
+.env
+.env.*
+*.env
+auth.json
+credentials.json
+credentials.yaml
+*credentials.json
+*credentials.yaml
+.credentials*
+secrets.json
+secrets.yaml
+secrets.*
+token.json
+tokens.json
+*.pem
+*.p12
+*.key
+id_rsa*
+*.keychain*
+
